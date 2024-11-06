@@ -163,7 +163,7 @@ describe('defaults', function () {
 
   it('should be used by custom instance if set before instance created', function (done) {
     axios.defaults.baseURL = 'http://example.org/';
-    var instance = axios.create();
+    const instance = axios.create();
 
     instance.get('/foo');
 
@@ -174,13 +174,28 @@ describe('defaults', function () {
   });
 
   it('should not be used by custom instance if set after instance created', function (done) {
-    var instance = axios.create();
+    const instance = axios.create();
     axios.defaults.baseURL = 'http://example.org/';
 
+    instance.get('/foo/users');
+
+    getAjaxRequest().then(function (request) {
+      expect(request.url).toBe('/foo/users');
+      done();
+    });
+  });
+
+  it('should resistent to ReDoS attack', function (done) {
+    const instance = axios.create();
+    const start = performance.now();
+    const slashes = '/'.repeat(100000);
+    instance.defaults.baseURL = '/' + slashes + 'bar/';
     instance.get('/foo');
 
     getAjaxRequest().then(function (request) {
-      expect(request.url).toBe('/foo');
+      const elapsedTimeMs = performance.now() - start;
+      expect(elapsedTimeMs).toBeLessThan(20);
+      expect(request.url).toBe('/' + slashes + 'bar/foo');
       done();
     });
   });
